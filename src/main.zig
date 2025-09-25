@@ -1,10 +1,23 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const z_bls_ks_conv = @import("z_bls_ks_conv");
 const clap = @import("zig-clap");
 
+const native_os = builtin.os.tag;
+var debug_allocator: std.heap.DebugAllocator(.{}) = .init;
+
 pub fn main() !void {
-    var gpa = std.heap.DebugAllocator(.{}){};
-    defer _ = gpa.deinit();
+    // choose appropriate allocator based on release type
+    const allocator, const is_debug = gpa: {
+        if (native_os == .wasi) break :gpa .{ std.heap.wasm_allocator, false };
+        break :gpa switch (builtin.mode) {
+            .Debug, .ReleaseSafe => .{ debug_allocator.allocator(), true },
+            .ReleaseFast, .ReleaseSmall => .{ std.heap.smp_allocator, false },
+        };
+    };
+    defer if (is_debug) {
+        _ = debug_allocator.deinit();
+    };
 
     // specify the paramaters that our program can take
     const params = comptime clap.parseParamsComptime(
@@ -35,7 +48,7 @@ pub fn main() !void {
     var diag = clap.Diagnostic{};
     var res = clap.parse(clap.Help, &params, parsers, .{
         .diagnostic = &diag,
-        .allocator = gpa.allocator(),
+        .allocator = allocator,
     }) catch |err| {
         try diag.reportToFile(.stderr(), err);
         return err;

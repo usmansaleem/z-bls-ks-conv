@@ -12,12 +12,15 @@ pub fn main() !void {
         \\-v, --version                Display Version
         \\-s, --src          <PATH>    Source directory containing v4 keystores
         \\-d, --dest         <PATH>    Destination directory for converted v4 keystores 
-        \\-p, --password-src <PATH>    Path to the directory containing password files.
+        \\-w, --password-src <PATH>    Path to the directory containing password files.
         \\-m, --mode         <MODE>    Keystores bulk-loading mode to specify how keystore and password file names are expected.
         \\                             Valid Values: [WEB3SIGNER, NIMBUS]. Defaults to: WEB3SIGNER.        
         \\                             WEB3SIGNER mode expects [<pk>.json | <pk>.txt]
         \\                             NIMBUS mode expects [<pk>/keystore.json | <pk>].
-        \\-c, --count        <INTEGER>  PBKDF2 count parameter. Defaults to 1.
+        \\-c                 <INTEGER>  PBKDF2 count parameter. Defaults to 1.
+        \\-n                 <INTEGER>  SCRYPT CPU/memory cost parameter. Defaults to 2.
+        \\-p                 <INTEGER>  SCRYPT Parallelization parameter. Defaults to 1.
+        \\-r                 <INTEGER>  SCRYPT Block size parameter. Defaults to 8.
         \\ 
     );
 

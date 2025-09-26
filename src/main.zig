@@ -1,6 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const z_bls_ks_conv = @import("z_bls_ks_conv");
+const bls = @import("z_bls_ks_conv");
 const clap = @import("zig-clap");
 
 const native_os = builtin.os.tag;
@@ -19,7 +19,7 @@ pub fn main() !void {
         _ = debug_allocator.deinit();
     };
 
-    // specify the paramaters that our program can take
+    // Parse command line arguments
     const params = comptime clap.parseParamsComptime(
         \\-h, --help                   Display help and exit.
         \\-v, --version                Display Version
@@ -38,10 +38,9 @@ pub fn main() !void {
     );
 
     // parsers for zig-clap
-    const Mode = enum { WEB3SIGNER, NIMBUS };
     const parsers = comptime .{
         .PATH = clap.parsers.string,
-        .MODE = clap.parsers.enumeration(Mode),
+        .MODE = clap.parsers.enumeration(bls.Mode),
         .INTEGER = clap.parsers.int(usize, 10),
     };
 
@@ -55,10 +54,11 @@ pub fn main() !void {
     };
     defer res.deinit();
 
+    // Handle Help and Version flags
     if (res.args.help != 0) {
         return clap.helpToFile(.stderr(), clap.Help, &params, .{
-            .markdown_lite = false, // treat newlines literally
-            .description_on_new_line = true, // description starts on a new line
+            .markdown_lite = false,
+            .description_on_new_line = true,
         });
     }
 
@@ -67,30 +67,41 @@ pub fn main() !void {
         return;
     }
 
-    if (res.args.src) |src| {
-        std.debug.print("Source directory: {s}\n", .{src});
-    }
-
-    // usage as default!
-    std.debug.print("Usage: ", .{});
-    return clap.usageToFile(.stderr(), clap.Help, &params);
-}
-
-test "simple test" {
-    const gpa = std.testing.allocator;
-    var list: std.ArrayList(i32) = .empty;
-    defer list.deinit(gpa); // Try commenting this out and see if zig detects the memory leak!
-    try list.append(gpa, 42);
-    try std.testing.expectEqual(@as(i32, 42), list.pop());
-}
-
-test "fuzz example" {
-    const Context = struct {
-        fn testOne(context: @This(), input: []const u8) anyerror!void {
-            _ = context;
-            // Try passing `--fuzz` to `zig build test` and see if it manages to fail this test case!
-            try std.testing.expect(!std.mem.eql(u8, "canyoufindme", input));
-        }
+    // validate required arguments
+    const src = res.args.src orelse {
+        std.log.err("Missing required argument: --src", .{});
+        return clap.usageToFile(.stderr(), clap.Help, &params);
     };
-    try std.testing.fuzz(Context{}, Context.testOne, .{});
+
+    const dest = res.args.dest orelse {
+        std.log.err("Missing required argument: --dest", .{});
+        return clap.usageToFile(.stderr(), clap.Help, &params);
+    };
+
+    const password_src = res.args.password_src orelse {
+        std.log.err("Missing required argument: --password-src", .{});
+        return clap.usageToFile(.stderr(), clap.Help, &params);
+    };
+
+    // Build options from CLI arguments
+    const options = bls.ConversionOptions{
+        .src_dir = src,
+        .dest_dir = dest,
+        .password_dir = password_src,
+        .mode = res.args.mode orelse .WEB3SIGNER,
+        .keystore_config = .{
+            .pbkdf2_count = res.args.c orelse 1,
+            .scrypt_n = res.args.n orelse 2,
+            .scrypt_p = res.args.p orelse 1,
+            .scrypt_r = res.args.r orelse 8,
+        },
+    };
+
+    // Validate paths exists
+    try bls.validatePaths(options);
+
+    // Perform conversion
+    try bls.convertKeystores(allocator, options);
+
+    std.log.info("Successfully converted keystores from '{s} to '{s}'", .{ src, dest });
 }

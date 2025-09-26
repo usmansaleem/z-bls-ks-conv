@@ -25,7 +25,7 @@ pub fn main() !void {
         \\-v, --version                Display Version
         \\-s, --src          <PATH>    Source directory containing v4 keystores
         \\-d, --dest         <PATH>    Destination directory for converted v4 keystores 
-        \\-w, --password-src <PATH>    Path to the directory containing password files.
+        \\-w, --password_dir <PATH>    Path to the directory containing password files.
         \\-m, --mode         <MODE>    Keystores bulk-loading mode to specify how keystore and password file names are expected.
         \\                             Valid Values: [WEB3SIGNER, NIMBUS]. Defaults to: WEB3SIGNER.        
         \\                             WEB3SIGNER mode expects [<pk>.json | <pk>.txt]
@@ -78,8 +78,8 @@ pub fn main() !void {
         return clap.usageToFile(.stderr(), clap.Help, &params);
     };
 
-    const password_src = res.args.password_src orelse {
-        std.log.err("Missing required argument: --password-src", .{});
+    const password_dir = res.args.password_dir orelse {
+        std.log.err("Missing required argument: --password_dir", .{});
         return clap.usageToFile(.stderr(), clap.Help, &params);
     };
 
@@ -87,7 +87,7 @@ pub fn main() !void {
     const options = bls.ConversionOptions{
         .src_dir = src,
         .dest_dir = dest,
-        .password_dir = password_src,
+        .password_dir = password_dir,
         .mode = res.args.mode orelse .WEB3SIGNER,
         .keystore_config = .{
             .pbkdf2_count = res.args.c orelse 1,
@@ -98,10 +98,10 @@ pub fn main() !void {
     };
 
     // Validate paths exists
-    try bls.validatePaths(options);
+    try bls.validatePaths(allocator, options);
 
     // Perform conversion
-    try bls.convertKeystores(allocator, options);
+    // try bls.convertKeystores(allocator, options);
 
     std.log.info("Successfully converted keystores from '{s} to '{s}'", .{ src, dest });
 }

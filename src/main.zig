@@ -101,7 +101,7 @@ pub fn main() !void {
     try bls.validatePaths(allocator, options);
 
     // Perform conversion
-    // try bls.convertKeystores(allocator, options);
+    try bls.convertKeystores(allocator, options);
 
     std.log.info("Successfully converted keystores from '{s} to '{s}'", .{ src, dest });
 }

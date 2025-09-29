@@ -79,3 +79,84 @@ pub const ConversionContext = struct {
         self.password_dir.close();
     }
 };
+
+// EIP-2335 BLS Keystore format structure
+pub const Keystore = struct {
+    crypto: Crypto,
+    description: ?[]const u8 = null,
+    pubkey: []const u8,
+    path: []const u8,
+    uuid: []const u8,
+    version: u32,
+
+    pub const Crypto = struct {
+        kdf: Kdf,
+        checksum: Checksum,
+        cipher: Cipher,
+
+        pub const Kdf = struct {
+            function: []const u8, // scrypt or pbkdf2
+            params: KdfParams,
+            message: []const u8,
+
+            pub const KdfParams = union(enum) {
+                scrypt: ScryptParams,
+                pbkdf2: Pbkdf2Params,
+
+                pub const ScryptParams = struct {
+                    dklen: u32,
+                    n: u32,
+                    r: u32,
+                    p: u32,
+                    salt: []const u8,
+                };
+
+                pub const Pbkdf2Params = struct {
+                    dklen: u32,
+                    c: u32,
+                    prf: []const u8, //hmac-sha256
+                    salt: []const u8,
+                };
+            };
+        };
+
+        pub const Checksum = struct {
+            function: []const u8, //sha-256
+            params: struct {}, //empty for sha-256
+            message: []const u8,
+        };
+
+        pub const Cipher = struct {
+            function: []const u8, //aes-128-ctr
+            params: CipherParams,
+            message: []const u8,
+
+            pub const CipherParams = struct {
+                iv: []const u8,
+            };
+        };
+    };
+
+    pub fn deinit(self: *Keystore, allocator: std.mem.Allocator) void {
+        allocator.free(self.crypto.kdf.function);
+        allocator.free(self.crypto.kdf.message);
+        allocator.free(self.crypto.checksum.function);
+        allocator.free(self.crypto.checksum.message);
+        allocator.free(self.crypto.cipher.function);
+        allocator.free(self.crypto.cipher.params.iv);
+        allocator.free(self.crypto.cipher.message);
+
+        switch (self.crypto.kdf.params) {
+            .scrypt => |params| allocator.free(params.salt),
+            .pbkdf2 => |params| {
+                allocator.free(params.salt);
+                allocator.free(params.prf);
+            },
+        }
+
+        if (self.description) |desc| allocator.free(desc);
+        allocator.free(self.pubkey);
+        allocator.free(self.path);
+        allocator.free(self.uuid);
+    }
+};

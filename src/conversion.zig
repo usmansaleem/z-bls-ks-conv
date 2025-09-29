@@ -1,5 +1,6 @@
 const std = @import("std");
 const types = @import("types.zig");
+const parsing = @import("parsing.zig");
 
 const ConversionOptions = types.ConversionOptions;
 const ConversionContext = types.ConversionContext;
@@ -10,6 +11,7 @@ pub fn convertKeystores(allocator: std.mem.Allocator, options: ConversionOptions
     var ctx = try ConversionContext.init(options);
     defer ctx.deinit();
 
+    std.debug.print("Mode: {}\n", .{ctx.options.mode});
     var iterator = ctx.src_dir.iterate();
     while (try iterator.next()) |entry| {
         try processEntry(allocator, entry, &ctx);
@@ -29,14 +31,16 @@ fn processEntry(allocator: std.mem.Allocator, entry: std.fs.Dir.Entry, ctx: *Con
             break :pk entry.name; // directory name is pk for Nimbus
         },
     };
-    std.debug.print("Processing {} keystore for PK: {s}\n", .{ ctx.options.mode, pk });
 
     var keystore_data = try readKeystoreAndPassword(allocator, pk, ctx);
     defer keystore_data.deinit();
 
+    var keystore = try parsing.parseKeystore(allocator, keystore_data.keystore_content);
+    defer keystore.deinit(allocator);
+
     // TODO: Process keystore_content and password_content
-    std.debug.print("  Keystore size: {} bytes\n", .{keystore_data.keystore_content.len});
-    std.debug.print("  Password size: {} bytes\n", .{keystore_data.password_content.len});
+    std.debug.print("Keystore version: {d}\n", .{keystore.version});
+    std.debug.print("Keystore public key:{s}\n", .{keystore.pubkey});
 }
 
 fn readKeystoreAndPassword(allocator: std.mem.Allocator, pk: []const u8, ctx: *ConversionContext) !KeystoreData {

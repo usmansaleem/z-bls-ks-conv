@@ -39,10 +39,11 @@ test "validateDestDir fails on read-only directory" {
     try tmp.dir.makeDir("readonly");
 
     // Open the directory and make it read-only
-    var ro_dir = try std.fs.openDirAbsolute(readonly_path, .{});
+    var ro_dir = try std.fs.openDirAbsolute(readonly_path, .{ .iterate = true });
     defer ro_dir.close();
-    try std.posix.fchmod(ro_dir.fd, 0o555);
 
+    try ro_dir.chmod(0o555);
+    std.debug.print("Destination directory is readonly\n", .{});
     // Should fail
     try std.testing.expectError(error.AccessDenied, bls.validation.validateDestDir(allocator, readonly_path));
 }

@@ -1,6 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const bls = @import("z_bls_ks_conv");
+const bls = @import("z-v4-converter");
 const clap = @import("zig-clap");
 
 const native_os = builtin.os.tag;

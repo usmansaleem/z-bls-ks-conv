@@ -4,44 +4,23 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    // This creates a module, which represents a collection of source files alongside
-    // some compilation options, such as optimization mode and linked system libraries.
-    // Zig modules are the preferred way of making Zig code available to consumers.
-    // addModule defines a module that we intend to make available for importing
-    // to our consumers. We must give it a name because a Zig package can expose
-    // multiple modules and consumers will need to be able to specify which
-    // module they want to access.
-    const mod = b.addModule("z_bls_ks_conv", .{
-        // The root source file is the "entry point" of this module. Users of
-        // this module will only be able to access public declarations contained
-        // in this file, which means that if you have declarations that you
-        // intend to expose to consumers that were defined in other files part
-        // of this module, you will have to make sure to re-export them from
-        // the root file.
+    // root module
+    const mod = b.addModule("z-v4-converter", .{
         .root_source_file = b.path("src/root.zig"),
-        // Later on we'll use this module as the root module of a test executable
-        // which requires us to specify a target.
         .target = target,
     });
 
+    // main executeable
     const exe = b.addExecutable(.{
-        .name = "z_bls_ks_conv",
+        .name = "z-v4-converter",
         .root_module = b.createModule(.{
-            // b.createModule defines a new module just like b.addModule but,
-            // unlike b.addModule, it does not expose the module to consumers of
-            // this package, which is why in this case we don't have to give it a name.
             .root_source_file = b.path("src/main.zig"),
             .target = target,
             .optimize = optimize,
             // List of modules available for import in source files part of the
             // root module.
             .imports = &.{
-                // Here "z_bls_ks_conv" is the name you will use in your source code to
-                // import this module (e.g. `@import("z_bls_ks_conv")`). The name is
-                // repeated because you are allowed to rename your imports, which
-                // can be extremely useful in case of collisions (which can happen
-                // importing modules from different packages).
-                .{ .name = "z_bls_ks_conv", .module = mod },
+                .{ .name = "z-v4-converter", .module = mod },
             },
         }),
     });
@@ -82,12 +61,13 @@ pub fn build(b: *std.Build) void {
         run_cmd.addArgs(args);
     }
 
+    // add Tests
     const mod_tests = b.addTest(.{
         .root_module = b.createModule(.{
             .root_source_file = b.path("tests/all.zig"),
             .target = target,
             .imports = &.{
-                .{ .name = "z_bls_ks_conv", .module = mod },
+                .{ .name = "z-v4-converter", .module = mod },
             },
         }),
     });

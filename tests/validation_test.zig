@@ -1,6 +1,6 @@
 const std = @import("std");
 const testing = std.testing;
-const bls = @import("z_bls_ks_conv");
+const bls = @import("z-v4-converter");
 const builtin = @import("builtin");
 
 test "validateDestDir creates missing directory" {

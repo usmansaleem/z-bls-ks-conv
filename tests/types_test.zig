@@ -1,6 +1,6 @@
 const std = @import("std");
 const testing = std.testing;
-const bls = @import("z_bls_ks_conv");
+const bls = @import("z-v4-converter");
 
 test "Mode.getKeystorePath for WEB3SIGNER" {
     const allocator = std.testing.allocator;

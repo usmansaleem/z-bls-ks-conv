@@ -1,5 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
+const build = @import("build.zig.zon");
 const bls = @import("z-v4-converter");
 const clap = @import("zig-clap");
 
@@ -63,7 +64,7 @@ pub fn main() !void {
     }
 
     if (res.args.version != 0) {
-        std.debug.print("Version={s}\n", .{"1.0.0"});
+        std.debug.print("Version: \"{s}\"\n", .{build.version});
         return;
     }
 

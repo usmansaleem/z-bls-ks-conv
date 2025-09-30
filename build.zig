@@ -10,6 +10,13 @@ pub fn build(b: *std.Build) void {
         .target = target,
     });
 
+    // build zon module - to obtain the --version for cli
+    const build_zig_zon = b.createModule(.{
+        .root_source_file = b.path("build.zig.zon"),
+        .target = target,
+        .optimize = optimize,
+    });
+
     // main executeable
     const exe = b.addExecutable(.{
         .name = "z-v4-converter",
@@ -21,6 +28,7 @@ pub fn build(b: *std.Build) void {
             // root module.
             .imports = &.{
                 .{ .name = "z-v4-converter", .module = mod },
+                .{ .name = "build.zig.zon", .module = build_zig_zon },
             },
         }),
     });

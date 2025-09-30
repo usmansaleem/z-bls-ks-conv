@@ -9,11 +9,11 @@ on:
   # Manual run from Actions tab
   workflow_dispatch:
 
-  jobs:
-    build:
-      runs-on: ubuntu-latest
-      steps:
-        - uses: actions/checkout@v4
-        - uses: mlugg/setup-zig@v2
-        - name: Build
-          run: zig build test --summary all          
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mlugg/setup-zig@v2
+      - name: Build
+        run: zig build test --summary all          

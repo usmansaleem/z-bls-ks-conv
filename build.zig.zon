@@ -1,6 +1,6 @@
 .{
     .name = .z_v4_converter,
-    .version = "1.0.0",
+    .version = "1.0.1",
     .fingerprint = 0xd3883a546b9b2934, // Changing this has security and trust implications.
     .minimum_zig_version = "0.15.1",
     // This field is optional.

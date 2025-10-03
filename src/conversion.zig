@@ -78,6 +78,8 @@ fn readKeystoreAndPassword(allocator: std.mem.Allocator, pk: []const u8, ctx: *C
 }
 
 fn normalizePassword(allocator: std.mem.Allocator, password: []const u8) ![]u8 {
+    if (password.len == 0) return allocator.dupe(u8, "");
+
     // Step 1: NFKD normalize
     var normalize = try Normalize.init(allocator);
     defer normalize.deinit(allocator);
@@ -120,4 +122,14 @@ test "normalizePassword produces correct output" {
     defer allocator.free(hex_encoded);
 
     try testing.expectEqualStrings(hex_encoded, "0x7465737470617373776f7264f09f9491");
+}
+
+test "normalizePassword with empty string produces correct output" {
+    const allocator = std.testing.allocator;
+    const password = "";
+
+    const normalized = try normalizePassword(allocator, password);
+    defer allocator.free(normalized);
+
+    try testing.expectEqualStrings(normalized, "");
 }

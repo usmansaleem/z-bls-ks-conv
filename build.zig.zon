@@ -13,6 +13,11 @@
             .url = "git+https://github.com/Hejsil/zig-clap#b7e3348ed60f99ba32c75aa707ff7c87adc31b36",
             .hash = "clap-0.11.0-oBajB-TnAQC7yPLnZRT5WzHZ_4Ly4dX2OILskli74b9H",
         },
+        // TODO: Update zg dependency to upstream https://codeberg.org/atman/zg
+        .zg = .{
+            .url = "git+https://codeberg.org/chaten/zg.git#749197a3f9d25e211615960c02380a3d659b20f9",
+            .hash = "zg-0.15.1-oGqU3M0-tALZCy7boQS86znlBloyKx6--JriGlY0Paa9",
+        },
     },
     .paths = .{ "build.zig", "build.zig.zon", "src", "tests", "LICENSE-APACHE-2.0", "LICENSE-MIT", "README.md" },
 }

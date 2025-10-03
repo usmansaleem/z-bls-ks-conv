@@ -15,3 +15,10 @@ pub const KeystoreData = types.KeystoreData;
 // Re-export main functions
 pub const validatePaths = validation.validatePaths;
 pub const convertKeystores = conversion.convertKeystores;
+
+test {
+    _ = @import("types.zig");
+    _ = @import("validation.zig");
+    _ = @import("conversion.zig");
+    _ = @import("parsing.zig");
+}

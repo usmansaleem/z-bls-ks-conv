@@ -1,5 +1,9 @@
 const std = @import("std");
 const types = @import("types.zig");
+const KdfParams = types.Keystore.Crypto.Kdf.KdfParams;
+const crypto = std.crypto;
+const pbkdf2 = crypto.pwhash.pbkdf2;
+const testing = std.testing;
 
 /// Parsing-specific errors
 pub const ParseError = error{
@@ -115,8 +119,74 @@ pub fn validateKeystoreFormat(keystore: *const types.Keystore) !void {
     }
 }
 
+/// Derive Decryption Key
+pub fn deriveKeyFromParams(
+    allocator: std.mem.Allocator,
+    password: []const u8,
+    params: KdfParams,
+) ![]u8 {
+    switch (params) {
+        .pbkdf2 => |p| {
+            // Convert hex salt to bytes
+            const salt_len = p.salt.len / 2;
+            const salt_bytes = try allocator.alloc(u8, salt_len);
+            defer allocator.free(salt_bytes);
+
+            _ = try std.fmt.hexToBytes(salt_bytes, p.salt);
+
+            // Allocate output buffer
+            const derived_key = try allocator.alloc(u8, p.dklen);
+            errdefer allocator.free(derived_key);
+
+            // Derive key
+            try pbkdf2(
+                derived_key,
+                password,
+                salt_bytes,
+                p.c,
+                crypto.auth.hmac.sha2.HmacSha256,
+            );
+
+            return derived_key;
+        },
+        .scrypt => {
+            // TODO: Implement scrypt
+            return error.NotImplemented;
+        },
+    }
+}
+
+/// Verifies that the password is correct by checking the checksum
+/// Returns true if the password is valid, false otherwise
+pub fn isValidPassword(allocator: std.mem.Allocator, decryption_key: []const u8, keystore: types.Keystore) !bool {
+    // Ensure decryption key is at least 32 bytes
+    if (decryption_key.len < 32) return error.InvalidDecryptionKeyLength;
+
+    const cipher_message = try hexToBytes(allocator, keystore.crypto.cipher.message);
+    defer allocator.free(cipher_message);
+
+    const checksum_message = try hexToBytes(allocator, keystore.crypto.checksum.message);
+    defer allocator.free(checksum_message);
+
+    // Ensure checksum message is 32 bytes (SHA256 output)
+    if (checksum_message.len != 32) return error.InvalidChecksumLength;
+
+    // Step 0: DK_slice = decryption_key[16:32]
+    const dk_slice = decryption_key[16..32];
+
+    // Step 1 & 2: Compute SHA256 of (DK_slice | cipher_message)
+    var hasher = crypto.hash.sha2.Sha256.init(.{});
+    hasher.update(dk_slice);
+    hasher.update(cipher_message);
+    var checksum: [32]u8 = undefined;
+    hasher.final(&checksum);
+
+    // Step 3 & 4: Compare and return
+    return std.mem.eql(u8, &checksum, checksum_message);
+}
+
 /// Parse KDF parameters based on function type
-fn parseKdfParams(allocator: std.mem.Allocator, function: []const u8, params_json: std.json.Value) !types.Keystore.Crypto.Kdf.KdfParams {
+fn parseKdfParams(allocator: std.mem.Allocator, function: []const u8, params_json: std.json.Value) !KdfParams {
     const params_obj = switch (params_json) {
         .object => |obj| obj,
         else => return ParseError.MissingKdfParams,
@@ -155,7 +225,7 @@ fn parseCipherParams(allocator: std.mem.Allocator, params_json: std.json.Value) 
 }
 
 /// Helper function to free KDF parameters
-fn freeKdfParams(allocator: std.mem.Allocator, params: types.Keystore.Crypto.Kdf.KdfParams) void {
+fn freeKdfParams(allocator: std.mem.Allocator, params: KdfParams) void {
     switch (params) {
         .scrypt => |scrypt_params| allocator.free(scrypt_params.salt),
         .pbkdf2 => |pbkdf2_params| {
@@ -163,4 +233,36 @@ fn freeKdfParams(allocator: std.mem.Allocator, params: types.Keystore.Crypto.Kdf
             allocator.free(pbkdf2_params.prf);
         },
     }
+}
+
+/// Helper function to convert hex string to bytes
+fn hexToBytes(allocator: std.mem.Allocator, hex_string: []const u8) ![]u8 {
+    const byte_len = hex_string.len / 2;
+    const bytes = try allocator.alloc(u8, byte_len);
+    errdefer allocator.free(bytes);
+
+    _ = try std.fmt.hexToBytes(bytes, hex_string);
+    return bytes;
+}
+
+test "PBKDF2 with hex salt" {
+    const params = KdfParams{
+        .pbkdf2 = .{
+            .dklen = 32,
+            .c = 262144,
+            .prf = "hmac-sha256",
+            .salt = "d4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3",
+        },
+    };
+
+    const password = "mypassword";
+
+    const key = try deriveKeyFromParams(
+        testing.allocator,
+        password,
+        params,
+    );
+    defer testing.allocator.free(key);
+
+    try testing.expectEqual(@as(usize, 32), key.len);
 }
